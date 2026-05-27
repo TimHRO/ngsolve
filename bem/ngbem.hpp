@@ -33,14 +33,23 @@ namespace ngsbem
 
   class IntOp_Parameters
   {
-    bool use_fmm = true;
+    bool use_fmm = false;
     int fmm_maxdirect = 100;
     int fmm_minorder = 20;
+
     double fmm_order_factor = 2.0;
     double fmm_separation = 2.0;
     double fmm_eval_separation = 3.0;
     double fmm_split_kr = 5.0;
     int fmm_maxlevel = 20;
+
+
+    bool use_ifgf = false;
+    int ifgf_maxLeafSize = -1;
+    int ifgf_order = 10;
+    int ifgf_n_elements = 1;
+    double ifgf_tolerance = -1;
+
   public:
     IntOp_Parameters () = default;
     IntOp_Parameters (const Flags & flags);
@@ -53,6 +62,12 @@ namespace ngsbem
     double FMMEvalSeparation() const { return fmm_eval_separation; }
     double FMMSplitKR() const { return fmm_split_kr; }
     int FMMMaxLevel() const { return fmm_maxlevel; }
+
+    bool UseIFGF() const { return use_ifgf;}
+    int IFGFMaxLeafSize() const { return ifgf_maxLeafSize; }
+    int IFGFOrder() const { return ifgf_order; }
+    int IFGFNElements() const { return ifgf_n_elements; }
+    int IFGFTolerance() const { return ifgf_tolerance; }
 
     operator FMM_Parameters() const
     {
