@@ -27,30 +27,30 @@ namespace ngsbem
     };
 #ifdef USE_IFGF
 
-    template <>
-    class IFGF_Operator<HelmholtzSLKernel<3,1,Complex>> : public Base_FMM_Operator<std::complex<double>>
-    {
-        typedef HelmholtzSLKernel<3,1,Complex> KERNEL;
-        typedef ModifiedHelmholtzIfgfOperator3d OperatorType;
-        typedef Base_FMM_Operator<std::complex<double>> BASE;
+template <>
+class IFGF_Operator<HelmholtzSLKernel<3,1,Complex>> : public Base_FMM_Operator<std::complex<double>>
+{
+    typedef HelmholtzSLKernel<3,1,Complex> KERNEL;
+    typedef ModifiedHelmholtzIfgfOperator3d OperatorType;
+    typedef Base_FMM_Operator<std::complex<double>> BASE;
 
-    protected:
-        std::unique_ptr<OperatorType> op;
-        KERNEL kernel;
+protected:
+    std::unique_ptr<OperatorType> op;
+    KERNEL kernel;
 
-    public:
-        IFGF_Operator(KERNEL _kernel, Array<Vec<3>> _xpts, Array<Vec<3>> _ypts,
-                    Array<Vec<3>> _xnv, Array<Vec<3>> _ynv, const IntOp_Parameters &io_params)
-            : BASE(std::move(_xpts), std::move(_ypts), std::move(_xnv), std::move(_ynv),
-                KERNEL::Shape(), io_params),
-            kernel(_kernel)
+public:
+    IFGF_Operator(KERNEL _kernel, Array<Vec<3>> _xpts, Array<Vec<3>> _ypts,
+                Array<Vec<3>> _xnv, Array<Vec<3>> _ynv, const IntOp_Parameters &io_params)
+        : BASE(std::move(_xpts), std::move(_ypts), std::move(_xnv), std::move(_ynv),
+            KERNEL::Shape(), io_params),
+        kernel(_kernel)
         {
             std::cout << "creating ifgf helmholtz SL op" << std::endl;
-            std::complex<double> waveNumber = -1i * kernel.GetKappa();
+            std::complex<float> waveNumber = static_cast<std::complex<float>>(-1i * kernel.GetKappa());
             std::cout << waveNumber << std::endl;
 
-            size_t leafSize = 250;
-            size_t order = 10;
+            size_t leafSize = 300;
+            size_t order = 8;
             int n_elem = 1;
             double tol = -1;
 
@@ -70,7 +70,7 @@ namespace ngsbem
             op = make_unique<ModifiedHelmholtzIfgfOperator3d>(waveNumber, leafSize, order, n_elem, tol);
             op->init(src_buf.data(), xpts.Size(), tgt_buf.data(), ypts.Size());
         }
-
+	/*
         void Mult(const BaseVector &x, BaseVector &y) const override
         {
             std::cout << "ifgf mult SL" << std::endl;
@@ -78,26 +78,53 @@ namespace ngsbem
             RegionTimer reg(tall);
             auto fx = x.FV<Complex>();
             auto fy = y.FV<Complex>();
-            fy = Complex(0);
+            //fy = Complex(0);
+	    std::cout << "fx.Size()=" << fx.Size() 
+              << " n_src=" << xpts.Size() 
+              << " n_tgt=" << ypts.Size()
+              << " fy.Size()=" << fy.Size() << std::endl;
             op->mult(fx.Data(), fx.Size(), fy.Data(), fy.Size());
-        }
+        }*/
 
-        BaseMatrix::OperatorInfo GetOperatorInfo() const override
-        {
-            return { "IFGF_Operator HelmholtzSL", this->Height(), this->Width() };
-        }
+	void Mult(const BaseVector &x, BaseVector &y) const override
+{
+    static Timer tall("ngbem ifgf apply HelmholtzSL");
+    RegionTimer reg(tall);
 
-        FMMOperatorInfo GetFMMInfo() const override
-        {
-            FMMOperatorInfo info;
-            info.kernel_name = KERNEL::Name();
-            info.source_size = xpts.Size();
-            info.target_size = ypts.Size();
-            info.kappa = kernel.GetKappa();
-            info.parameters = fmm_params;
-            return info;
-        }
-    };
+    auto fx = x.FV<Complex>();
+    auto fy = y.FV<Complex>();
+
+    // cast to float, no cast inside library
+    Eigen::Vector<std::complex<float>, Eigen::Dynamic> weights_f =
+        Eigen::Map<const Eigen::Vector<std::complex<double>, Eigen::Dynamic>>(
+            reinterpret_cast<const std::complex<double>*>(fx.Data()), fx.Size())
+        .cast<std::complex<float>>();
+
+    Eigen::Vector<std::complex<float>, Eigen::Dynamic> result_f(fy.Size());
+
+    op->mult(weights_f.data(), weights_f.size(), result_f.data(), result_f.size());
+
+    Eigen::Map<Eigen::Vector<std::complex<double>, Eigen::Dynamic>>(
+        reinterpret_cast<std::complex<double>*>(fy.Data()), fy.Size())
+    = result_f.cast<std::complex<double>>();
+}
+
+    BaseMatrix::OperatorInfo GetOperatorInfo() const override
+    {
+        return { "IFGF_Operator HelmholtzSL", this->Height(), this->Width() };
+    }
+
+    FMMOperatorInfo GetFMMInfo() const override
+    {
+        FMMOperatorInfo info;
+        info.kernel_name = KERNEL::Name();
+        info.source_size = xpts.Size();
+        info.target_size = ypts.Size();
+        info.kappa = kernel.GetKappa();
+        info.parameters = fmm_params;
+        return info;
+    }
+};
     /*
     template <>
     class IFGF_Operator<HelmholtzDLKernel<3>> : public Base_FMM_Operator<std::complex<double>>

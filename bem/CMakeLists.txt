@@ -10,7 +10,7 @@ target_include_directories(ngsbem PRIVATE ${NETGEN_PYTHON_INCLUDE_DIRS} ${CMAKE_
 
 include(FetchContent)
 
-set(ifgf_DIR "/home/tim/local/ifgf/lib/cmake/ifgf")
+set(ifgf_DIR "/home/e12435600/.local/ifgf/lib64/cmake/ifgf")
 
 find_package(ifgf CONFIG REQUIRED)
 
