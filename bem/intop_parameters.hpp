@@ -18,6 +18,15 @@ namespace ngsbem
     double fmm_eval_separation = 3.0;
     double fmm_split_kr = 5.0;
     int fmm_maxlevel = 20;
+
+    bool use_ifgf = false;
+    int ifgf_maxLeafSize = 400;
+    int ifgf_order = 6;
+    int ifgf_n_elements = 1;
+    double ifgf_tolerance = -1;
+    double ifgf_maxk = 3.0;
+    double ifgf_minSigma = -1;
+
   public:
     IntOp_Parameters () = default;
     IntOp_Parameters (const ngcore::Flags & flags);
@@ -31,6 +40,14 @@ namespace ngsbem
     double FMMSplitKR() const { return fmm_split_kr; }
     int FMMMaxLevel() const { return fmm_maxlevel; }
 
+    bool UseIFGF() const { return use_ifgf;}
+    int IFGFMaxLeafSize() const { return ifgf_maxLeafSize; }
+    int IFGFOrder() const { return ifgf_order; }
+    int IFGFNElements() const { return ifgf_n_elements; }
+    double IFGFTolerance() const { return ifgf_tolerance; }
+    double IFGFMaxk() const { return ifgf_maxk; }
+    double IFGFMinSigma() const { return ifgf_minSigma; }
+
     operator FMM_Parameters() const
     {
       FMM_Parameters fmm_params;
@@ -42,6 +59,18 @@ namespace ngsbem
       fmm_params.split_kr = fmm_split_kr;
       fmm_params.maxlevel = fmm_maxlevel;
       return fmm_params;
+    }
+
+    operator IFGF_Parameters() const
+    {
+      IFGF_Parameters ifgf_params;
+      ifgf_params.maxLeafSize = ifgf_maxLeafSize;
+      ifgf_params.order = ifgf_order;
+      ifgf_params.n_elements = ifgf_n_elements;
+      ifgf_params.tolerance = ifgf_tolerance;
+      ifgf_params.maxk = ifgf_maxk;
+      ifgf_params.minSigma = ifgf_minSigma;
+      return ifgf_params;
     }
   };
 

@@ -6,10 +6,20 @@ add_library( ngsbem ${NGS_LIB_TYPE}
         intrules_SauterSchwab.cpp analytic_integrals.cpp
         )
 
-target_include_directories(ngsbem PRIVATE ${NETGEN_PYTHON_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/../ngstd ${CMAKE_CURRENT_SOURCE_DIR}/../linalg)
+target_include_directories(ngsbem PRIVATE ${NETGEN_PYTHON_INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR}/../ngstd ${CMAKE_CURRENT_SOURCE_DIR}/../linalg ~/.local/ifgf/include)
+
+include(FetchContent)
+set(ifgf_DIR "/home/e12435600/.local/ifgf/lib64/cmake/ifgf")
+find_package(ifgf CONFIG REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 target_link_libraries (ngsbem PUBLIC ngcomp ngfem ngla ngbla ngstd ${MPI_CXX_LIBRARIES} PRIVATE "$<BUILD_INTERFACE:netgen_python>" ${HYPRE_LIBRARIES})
 target_link_libraries(ngsbem ${LAPACK_CMAKE_LINK_INTERFACE} "$<BUILD_INTERFACE:ngs_lapack>")
+target_link_libraries(ngsbem PRIVATE 
+    Eigen3::Eigen
+    ifgf::ifgf_core 
+)
+
 install( TARGETS ngsbem ${ngs_install_dir} )
 
 install( FILES

@@ -71,6 +71,18 @@ namespace ngsbem
     int maxlevel = 20;
   };
 
+  class IFGF_Parameters
+  {
+  public:
+   int maxLeafSize = 400;
+   int order = 7;
+   int n_elements = -1;
+   double tolerance = -1;
+   double maxk = -1;
+   double minSigma = -1;
+  };
+   
+
 
   struct FMMTreeStats
   {

@@ -4,6 +4,7 @@
 #include "intrules_SauterSchwab.hpp"
 #include "ngbem.hpp"
 #include "fmmoperator.hpp"
+#include "ifgfoperator.hpp"
 #include "../linalg/elementbyelement.hpp"
 #include "../linalg/diagonalmatrix.hpp"
 
@@ -19,6 +20,17 @@ namespace ngsbem
     auto use_fmm_flag = flags.GetDefineFlagX("use_fmm");
     if (use_fmm_flag.IsTrue()) use_fmm = true;
     if (use_fmm_flag.IsFalse()) use_fmm = false;
+
+    auto use_ifgf_flag = flags.GetDefineFlagX("use_ifgf");
+    if (use_ifgf_flag.IsTrue()) use_ifgf = true;
+    if (use_ifgf_flag.IsFalse()) use_ifgf = false;
+
+    ifgf_order = int(flags.GetNumFlag("ifgf_order", ifgf_order));
+    ifgf_maxLeafSize = int(flags.GetNumFlag("ifgf_maxLeafSize", ifgf_maxLeafSize));
+    ifgf_maxk = double(flags.GetNumFlag("ifgf_maxk", ifgf_maxk));
+    ifgf_minSigma = double(flags.GetNumFlag("ifgf_minSigma", ifgf_minSigma));
+    ifgf_tolerance = double(flags.GetNumFlag("ifgf_tolerance", ifgf_tolerance));
+    ifgf_n_elements = int(flags.GetNumFlag("ifgf_n_elements", ifgf_n_elements));
 
     fmm_maxdirect = int(flags.GetNumFlag("fmm_maxdirect", fmm_maxdirect));
     fmm_minorder = int(flags.GetNumFlag("fmm_minorder", fmm_minorder));
@@ -300,8 +312,19 @@ namespace ngsbem
 
     auto evalx = create_eval(*trial_space, compress_trial_els, *trial_evaluator, trial_vb);
     auto evaly = create_eval(*test_space, compress_test_els, *test_evaluator, test_vb);
-    auto fmmop = make_shared<FMM_Operator<KERNEL>> (kernel, std::move(xpts), std::move(ypts),
-                                                    std::move(xnv), std::move(ynv), io_params);
+
+    //auto fmmop = make_shared<FMM_Operator<KERNEL>> (kernel, std::move(xpts), std::move(ypts),
+    //                                                std::move(xnv), std::move(ynv), io_params);
+
+    shared_ptr<BaseMatrix> fmmop;
+    if(io_params.UseFMM()){
+      std::cout << "standart fmm" << std::endl;
+      fmmop = make_shared<FMM_Operator<KERNEL>> (kernel, std::move(xpts), std::move(ypts), std::move(xnv), std::move(ynv), io_params);
+    }
+    if(io_params.UseIFGF()){
+      std::cout << "new ifgf" << std::endl;
+      fmmop = make_shared<IFGF_Operator<KERNEL>> (kernel, std::move(xpts), std::move(ypts), std::move(xnv), std::move(ynv), io_params);
+    }
 
 
     if (trial_mesh != test_mesh)
@@ -339,7 +362,7 @@ namespace ngsbem
         }
 
 
-    if (!io_params.UseFMM())
+    if (!io_params.UseFMM() && !io_params.UseIFGF())
       {
         pairs.SetSize0();
         for (ElementId ei : trial_mesh->Elements(trial_vb))
@@ -488,7 +511,7 @@ namespace ngsbem
 
                 kernel_shapesj = kernel_ixiy * Trans(shapesj1);
 
-                if (io_params.UseFMM())
+                if (io_params.UseFMM() || io_params.UseIFGF())
                   elmat.Rows(test_range).Cols(trial_range) -= shapesi1.Rows(test_range) * kernel_shapesj.Cols(trial_range);
               }
             // tasscorr.Stop();
@@ -498,7 +521,7 @@ namespace ngsbem
 
 
     tassemble.Stop();
-    if (io_params.UseFMM())
+    if (io_params.UseFMM() || io_params.UseIFGF())
       return TransposeOperator(evaly) * fmmop * evalx + nearfield_correction;
     else
       return nearfield_correction;
